@@ -982,11 +982,11 @@ def api_triage_events():
                 WHERE user_id = %s
                   AND event_date >= DATEADD(day, -90, CURRENT_DATE)
                   AND (
-                      LOWER(event_name) LIKE '%order_placed%'
-                   OR LOWER(event_name) LIKE '%order_submitted%'
-                   OR LOWER(event_name) LIKE '%order_confirmed%'
-                   OR LOWER(event_name) LIKE '%checkout_completed%'
-                   OR LOWER(event_name) LIKE '%checkout_submitted%'
+                      LOWER(event_name) LIKE '%%order_placed%%'
+                   OR LOWER(event_name) LIKE '%%order_submitted%%'
+                   OR LOWER(event_name) LIKE '%%order_confirmed%%'
+                   OR LOWER(event_name) LIKE '%%checkout_completed%%'
+                   OR LOWER(event_name) LIKE '%%checkout_submitted%%'
                   )
                 ORDER BY event_timestamp DESC
                 LIMIT 1
