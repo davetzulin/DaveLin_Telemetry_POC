@@ -932,6 +932,7 @@ def api_triage_events():
     try:
         conn = get_snowflake_conn()
         cursor = conn.cursor(DictCursor)
+        cursor.execute("ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 30")
 
         resolved_user_id = user_input
 
