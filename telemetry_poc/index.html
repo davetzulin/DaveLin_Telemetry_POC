@@ -1429,8 +1429,8 @@
                     <button class="triage-search-btn" id="triage-search-btn" onclick="searchTriageEvents()">Search</button>
                 </div>
                 <div class="triage-mode-toggle">
-                    <button class="triage-mode-btn active" id="mode-btn-verbose" onclick="setTriageMode('verbose')">Verbose</button>
-                    <button class="triage-mode-btn" id="mode-btn-summary" onclick="setTriageMode('summary')">Summary</button>
+                    <button class="triage-mode-btn" id="mode-btn-verbose" onclick="setTriageMode('verbose')">Verbose</button>
+                    <button class="triage-mode-btn active" id="mode-btn-summary" onclick="setTriageMode('summary')">Summary</button>
                 </div>
             </div>
             <div class="triage-content" id="triage-content">
@@ -2193,7 +2193,7 @@
         }
 
         let _triageEvents = [];
-        let _triageMode = 'verbose';
+        let _triageMode = 'summary';
         let _triageApiData = null;
         const TRIAGE_PAGE = 20;
 
