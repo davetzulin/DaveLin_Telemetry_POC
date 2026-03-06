@@ -1058,6 +1058,12 @@ def api_triage_events():
 
     except Exception as e:
         logger.error(f'Snowflake triage error: {e}')
+        err_str = str(e).lower()
+        if is_email and ('timeout' in err_str or 'canceled' in err_str or 'exceeded' in err_str):
+            return jsonify({'error': (
+                f'Email lookup timed out — searching event properties is too slow for large tables. '
+                f'Please enter the Consumer ID directly instead of {user_input}.'
+            )}), 500
         return jsonify({'error': str(e)}), 500
 
 
