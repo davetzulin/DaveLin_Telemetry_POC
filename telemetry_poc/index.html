@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Labs - Data Workbench</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background: #f0ede8;
+        }
+
+        /* ── Top Navigation ── */
+        .top-nav {
+            background: #1b1b28;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            height: 50px;
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .env-badge {
+            background: transparent;
+            border: 1px solid #3a3a50;
+            color: #ddd;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .nav-links a {
+            color: #b0b0c8;
+            text-decoration: none;
+            font-size: 13.5px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .nav-links a:hover { color: white; }
+
+        .nav-user {
+            font-size: 13px;
+            color: #b0b0c8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        /* ── App Layout ── */
+        .app-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Left Sidebar ── */
+        .sidebar {
+            width: 275px;
+            min-width: 275px;
+            background: white;
+            border-right: 1px solid #eaeaea;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav { padding: 8px 0; }
+
+        .sidebar-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 9px 18px;
+            cursor: pointer;
+            gap: 12px;
+        }
+
+        .sidebar-item:hover { background: #f9f9f9; }
+
+        .sidebar-item-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: #777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-item-body { flex: 1; min-width: 0; }
+
+        .sidebar-item-title {
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #222;
+        }
+
+        .sidebar-item-sub {
+            font-size: 11.5px;
+            color: #aaa;
+            margin-top: 1px;
+        }
+
+        .sidebar-item.muted .sidebar-item-title,
+        .sidebar-item.muted .sidebar-item-sub { color: #ccc; }
+
+        .coming-soon {
+            background: #fdecea;
+            color: #e05a46;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+            align-self: center;
+            flex-shrink: 0;
+        }
+
+        /* ── Chats Section ── */
+        .chats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px 6px;
+            border-top: 1px solid #f2f2f2;
+            margin-top: 4px;
+        }
+
+        .chats-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #aaa;
+            letter-spacing: 0.8px;
+        }
+
+        .chats-count {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .new-chat-btn {
+            display: block;
+            margin: 6px 14px 8px;
+            background: #e05a46;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            width: calc(100% - 28px);
+            text-align: center;
+            transition: background 0.15s;
+        }
+
+        .new-chat-btn:hover { background: #cc4a38; }
+
+        .show-archived {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 18px;
+            font-size: 12.5px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .show-archived input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: #e05a46;
+        }
+
+        /* ── Chat List Items ── */
+        .chat-list-item {
+            display: flex;
+            align-items: center;
+            padding: 9px 18px;
+            cursor: pointer;
+            gap: 10px;
+            border-radius: 0;
+            transition: background 0.1s;
+        }
+
+        .chat-list-item:hover { background: #f9f9f9; }
+
+        .chat-list-item.active {
+            background: #fff5f4;
+        }
+
+        .chat-list-item.active .chat-list-name { color: #e05a46; }
+
+        .chat-list-icon {
+            color: #e05a46;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .chat-list-body { flex: 1; min-width: 0; }
+
+        .chat-list-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #222;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-list-date {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 1px;
+        }
+
+        .chat-list-more {
+            color: #ccc;
+            font-size: 18px;
+            letter-spacing: 1px;
+            line-height: 1;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .chat-list-more:hover {
+            color: #888;
+            background: #f0f0f0;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid #f2f2f2;
+        }
+
+        .collapse-btn {
+            background: #f2f2f2;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            cursor: pointer;
+            color: #888;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .collapse-btn:hover { background: #e8e8e8; }
+
+        /* ── Main Content ── */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f0ede8;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .workbench-header { padding: 16px 24px 0; }
+
+        .workbench-eyebrow {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #bbb;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .workbench-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 3px;
+        }
+
+        .workbench-title-row h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e1e1e;
+            outline: none;
+        }
+
+        .workbench-title-row h1[contenteditable="true"] {
+            border-bottom: 2px solid #e05a46;
+            padding-bottom: 2px;
+        }
+
+        .edit-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .edit-icon-btn:hover { color: #888; }
+
+        /* ── Chat Empty State ── */
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .chat-empty-icon {
+            width: 60px;
+            height: 60px;
+            background: #fdecea;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-empty-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e1e1e;
+            margin-top: 2px;
+        }
+
+        .chat-empty-subtitle {
+            font-size: 13px;
+            color: #aaa;
+            text-align: center;
+            max-width: 420px;
+            line-height: 1.5;
+        }
+
+        /* ── Messages ── */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 78%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .message.user .message-bubble {
+            background: #e05a46;
+            color: white;
+            border-bottom-right-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .message.assistant .message-bubble {
+            background: white;
+            color: #222;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #eaeaea;
+        }
+
+        .message-time {
+            font-size: 10.5px;
+            color: #bbb;
+            margin-top: 3px;
+            padding: 0 2px;
+        }
+
+        /* Markdown rendering in assistant messages */
+        .message.assistant .message-bubble p { margin: 0 0 8px; }
+        .message.assistant .message-bubble p:last-child { margin-bottom: 0; }
+        .message.assistant .message-bubble h1,
+        .message.assistant .message-bubble h2,
+        .message.assistant .message-bubble h3 {
+            margin: 10px 0 4px;
+            font-size: 14px;
+        }
+        .message.assistant .message-bubble code {
+            background: #f4f4f4;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        .message.assistant .message-bubble pre {
+            background: #f4f4f4;
+            padding: 10px 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin: 8px 0;
+        }
+        .message.assistant .message-bubble pre code {
+            background: none;
+            padding: 0;
+        }
+        .message.assistant .message-bubble ul,
+        .message.assistant .message-bubble ol {
+            padding-left: 20px;
+            margin: 4px 0;
+        }
+        .message.assistant .message-bubble li { margin: 2px 0; }
+        .message.assistant .message-bubble strong { font-weight: 600; }
+
+        /* Typing indicator */
+        .loading-bubble {
+            display: flex;
+            gap: 5px;
+            padding: 14px 16px;
+            align-items: center;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: #ccc;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+            40% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ── Message Input ── */
+        .input-section { padding: 12px 24px 14px; }
+
+        .input-box {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e0dcd6;
+            display: flex;
+            align-items: center;
+            padding: 11px 14px;
+            gap: 8px;
+        }
+
+        .input-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 13.5px;
+            color: #333;
+            background: transparent;
+        }
+
+        .input-box input::placeholder { color: #ccc; }
+        .input-box input:disabled { cursor: not-allowed; }
+
+        .send-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s;
+        }
+
+        .send-icon-btn:hover { color: #e05a46; }
+        .send-icon-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+        .input-hint {
+            text-align: center;
+            font-size: 11px;
+            color: #c0bbb5;
+            margin-top: 6px;
+        }
+
+        /* ── Right Panel ── */
+        .right-panel {
+            width: 180px;
+            min-width: 180px;
+            padding: 20px 14px;
+            background: #f0ede8;
+            border-left: 1px solid #e4e0da;
+        }
+
+        .right-panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        .right-panel-desc {
+            font-size: 11.5px;
+            color: #bbb;
+            line-height: 1.55;
+        }
+
+        .inspector-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+            color: #999;
+            margin-bottom: 8px;
+            gap: 6px;
+        }
+
+        .inspector-row strong {
+            color: #444;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .inspector-divider {
+            border: none;
+            border-top: 1px solid #e4e0da;
+            margin: 10px 0;
+        }
+
+        /* ── Context Menu ── */
+        .chat-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            z-index: 1000;
+            overflow: hidden;
+            min-width: 140px;
+        }
+
+        .chat-menu-item {
+            padding: 9px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .chat-menu-item:hover { background: #f5f5f5; }
+        .chat-menu-item.danger { color: #e05a46; }
+
+        /* ── Error message ── */
+        .message-error .message-bubble {
+            background: #fff0ee;
+            color: #c0392b;
+            border: 1px solid #fcd0cc;
+            font-size: 12.5px;
+        }
+
+        /* ── Triage View ── */
+        .triage-view {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f0ede8;
+            min-width: 0;
+        }
+
+        .triage-header {
+            padding: 16px 24px 0;
+        }
+
+        .triage-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #aaa;
+            cursor: pointer;
+            margin-bottom: 6px;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .triage-back:hover { color: #e05a46; }
+
+        .triage-intro {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.6;
+            margin-top: 10px;
+            max-width: 580px;
+        }
+
+        .triage-search-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            align-items: center;
+        }
+
+        .triage-input {
+            flex: 1;
+            background: white;
+            border: 1px solid #e0dcd6;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            color: #333;
+            outline: none;
+            max-width: 320px;
+        }
+
+        .triage-input:focus { border-color: #e05a46; }
+
+        .triage-date {
+            background: white;
+            border: 1px solid #e0dcd6;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #555;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .triage-date:focus { border-color: #e05a46; }
+
+        .triage-search-btn {
+            background: #e05a46;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+
+        .triage-search-btn:hover { background: #cc4a38; }
+        .triage-search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .triage-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 32px;
+        }
+
+        .triage-result-header {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e4e0da;
+        }
+
+        .triage-result-header span { color: #555; }
+
+        .triage-empty {
+            text-align: center;
+            padding: 48px 0;
+            color: #bbb;
+            font-size: 13px;
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .event-row {
+            display: grid;
+            grid-template-columns: 28px 50px 140px 1fr 1fr 1fr;
+            gap: 16px;
+            align-items: center;
+            padding: 9px 14px;
+            background: white;
+            border-radius: 0;
+            font-size: 13px;
+        }
+
+        .event-row:first-child { border-radius: 8px 8px 0 0; }
+        .event-row:last-child { border-radius: 0 0 8px 8px; }
+        .event-row:only-child { border-radius: 8px; }
+
+        .event-row:hover { background: #fff8f7; }
+
+        .event-time {
+            font-size: 11.5px;
+            color: #aaa;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .event-desc {
+            font-size: 13px;
+            color: #1e1e1e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #e05a46;
+            background: #fdecea;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .event-label {
+            font-size: 12.5px;
+            color: #555;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .triage-error {
+            background: #fff0ee;
+            border: 1px solid #fcd0cc;
+            color: #c0392b;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .triage-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #aaa;
+            font-size: 13px;
+            padding: 24px 0;
+        }
+
+        .triage-more-btn {
+            display: block;
+            margin: 14px auto 0;
+            background: white;
+            border: 1px solid #e0dcd6;
+            border-radius: 8px;
+            padding: 9px 22px;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+
+        .triage-more-btn:hover {
+            border-color: #e05a46;
+            color: #e05a46;
+        }
+
+        /* ── Triage Mode Toggle ── */
+        .triage-mode-toggle {
+            display: flex;
+            gap: 0;
+            margin: 14px 0 0;
+            align-self: flex-start;
+        }
+
+        .triage-mode-btn {
+            background: white;
+            border: 1px solid #e0dcd6;
+            color: #555;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .triage-mode-btn:first-child {
+            border-radius: 6px 0 0 6px;
+        }
+
+        .triage-mode-btn:last-child {
+            border-radius: 0 6px 6px 0;
+            border-left: none;
+        }
+
+        .triage-mode-btn.active {
+            background: #e05a46;
+            border-color: #e05a46;
+            color: white;
+        }
+
+        .triage-mode-btn:not(.active):hover {
+            border-color: #e05a46;
+            color: #e05a46;
+        }
+
+        /* ── Actor Tags ── */
+        .actor-tag {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .actor-tag.cx {
+            background: #e6f4ea;
+            color: #2d6a4f;
+        }
+
+        .actor-tag.dx {
+            background: #e3eeff;
+            color: #1a47a8;
+        }
+
+        .actor-tag.sys {
+            background: #f0f0f0;
+            color: #888;
+        }
+
+        /* ── Event Row Number ── */
+        .event-num {
+            font-size: 11px;
+            color: #bbb;
+            font-variant-numeric: tabular-nums;
+            width: 28px;
+            text-align: right;
+        }
+
+        /* ── Triage Summary Prose ── */
+        .triage-summary-prose {
+            background: white;
+            border-radius: 10px;
+            padding: 24px 28px;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #1e1e1e;
+            margin-top: 4px;
+        }
+
+        .triage-summary-prose h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e1e1e;
+            margin: 18px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #f0ede8;
+        }
+
+        .triage-summary-prose h3 {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #333;
+            margin: 14px 0 6px;
+        }
+
+        .triage-summary-prose p {
+            margin: 8px 0;
+        }
+
+        .triage-summary-prose ul,
+        .triage-summary-prose ol {
+            margin: 6px 0 6px 20px;
+        }
+
+        .triage-summary-prose li {
+            margin: 4px 0;
+        }
+
+        .triage-summary-prose code {
+            background: #f5f5f5;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12.5px;
+            color: #c0392b;
+        }
+
+        .triage-summary-prose strong {
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        /* ── Sidebar active nav item ── */
+        .sidebar-item.active-nav {
+            background: #fff5f4;
+        }
+        .sidebar-item.active-nav .sidebar-item-title { color: #e05a46; }
+        .sidebar-item.active-nav .sidebar-item-icon { color: #e05a46; }
+
+        /* ── Skills View ── */
+        .skills-view {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f0ede8;
+            min-width: 0;
+        }
+
+        .skills-header { padding: 16px 24px 0; }
+
+        .skills-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 32px;
+        }
+
+        .skills-section-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #bbb;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .skill-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 18px 18px;
+            border: 1px solid #eaeaea;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .skill-card.active {
+            cursor: pointer;
+            transition: box-shadow 0.15s, transform 0.12s;
+        }
+
+        .skill-card.active:hover {
+            box-shadow: 0 4px 18px rgba(224, 90, 70, 0.14);
+            transform: translateY(-2px);
+        }
+
+        .skill-card.active:active { transform: translateY(0); }
+
+        .skill-card.disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+
+        .skill-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+
+        .skill-card.active .skill-card-icon {
+            background: #fdecea;
+            color: #e05a46;
+        }
+
+        .skill-card.disabled .skill-card-icon {
+            background: #f0f0f0;
+            color: #aaa;
+        }
+
+        .skill-card-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e1e1e;
+            line-height: 1.3;
+        }
+
+        .skill-card-desc {
+            font-size: 11.5px;
+            color: #aaa;
+            line-height: 1.45;
+        }
+
+        .skill-coming-badge {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            color: #ccc;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── Behavior View ── */
+        .behavior-view {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f0ede8;
+            min-width: 0;
+        }
+
+        .behavior-header { padding: 16px 24px 0; }
+
+        .behavior-date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            border: 1px solid #e0dcd6;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+            margin-top: 14px;
+        }
+
+        .behavior-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 32px;
+        }
+
+        .behavior-slots {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .behavior-slot {
+            background: white;
+            border: 1.5px dashed #ddd;
+            border-radius: 10px;
+            padding: 16px 18px;
+            min-width: 148px;
+            transition: border-color 0.15s;
+            user-select: none;
+        }
+
+        .behavior-slot.empty { cursor: pointer; }
+        .behavior-slot.empty:hover { border-color: #e05a46; }
+
+        .behavior-slot.filled {
+            border-style: solid;
+            border-color: #e05a46;
+        }
+
+        .behavior-slot-step {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #ccc;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .behavior-slot.filled .behavior-slot-step { color: #e05a46; }
+
+        .behavior-slot-add {
+            font-size: 13px;
+            color: #bbb;
+            font-weight: 500;
+        }
+
+        .behavior-slot.empty:hover .behavior-slot-add { color: #e05a46; }
+
+        .behavior-slot-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1e1e1e;
+            margin-bottom: 10px;
+            line-height: 1.35;
+        }
+
+        .behavior-slot-count {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e05a46;
+            line-height: 1;
+        }
+
+        .behavior-slot-count-sub {
+            font-size: 10.5px;
+            color: #aaa;
+            margin-top: 3px;
+        }
+
+        .behavior-slot-spinner {
+            font-size: 11.5px;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        .behavior-slot-pct {
+            display: inline-block;
+            margin-top: 7px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #e05a46;
+            background: #fdecea;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .behavior-slot-arrow {
+            color: #ccc;
+            font-size: 20px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .behavior-add-more-btn {
+            background: white;
+            border: 1.5px dashed #ddd;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: #bbb;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+            display: block;
+            margin-bottom: 24px;
+        }
+
+        .behavior-add-more-btn:hover {
+            border-color: #e05a46;
+            color: #e05a46;
+        }
+
+        .behavior-chart-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #eaeaea;
+            padding: 20px 24px 24px;
+        }
+
+        .behavior-chart-title {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 16px;
+        }
+
+        /* ── Behavior Dropdown ── */
+        .behavior-dropdown {
+            position: fixed;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+            z-index: 2000;
+            min-width: 210px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .behavior-dropdown-item {
+            padding: 9px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .behavior-dropdown-item:hover { background: #fff5f4; color: #e05a46; }
+
+        .behavior-dropdown-item.already-selected {
+            color: #ccc;
+            cursor: default;
+            font-style: italic;
+        }
+
+        .behavior-dropdown-item.already-selected:hover { background: white; color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-logo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            AI Labs
+        </div>
+        <button class="env-badge">
+            Production
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </button>
+        <nav class="nav-links">
+            <a>Explorer</a>
+            <a>Dedup Tool</a>
+            <a>LUR</a>
+            <a>COO Dashboard</a>
+            <a>Fraud Outreach</a>
+        </nav>
+        <div class="nav-user">
+            david.lin@doordash.com
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+    </nav>
+
+    <div class="app-layout">
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-nav">
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Teach Dashie</div>
+                        <div class="sidebar-item-sub">Guided training package</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item muted">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Automations</div>
+                        <div class="sidebar-item-sub">Recurring tasks and schedules</div>
+                    </div>
+                    <span class="coming-soon">COMING SOON</span>
+                </div>
+
+                <div class="sidebar-item" id="skills-nav-item" onclick="showSkillsView()">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Skills</div>
+                        <div class="sidebar-item-sub">Capability setup and installs</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Learnings</div>
+                        <div class="sidebar-item-sub">Captured runtime insights</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Knowledge Base</div>
+                        <div class="sidebar-item-sub">Grounding documents and sources</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Data Model</div>
+                        <div class="sidebar-item-sub">Entities and relationships</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Evals</div>
+                        <div class="sidebar-item-sub">Ground truth comparisons</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item">
+                    <span class="sidebar-item-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                    </span>
+                    <div class="sidebar-item-body">
+                        <div class="sidebar-item-title">Connections</div>
+                        <div class="sidebar-item-sub">External integrations</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Chats -->
+            <div class="chats-header">
+                <span class="chats-label">CHATS</span>
+                <span class="chats-count" id="chats-count">0</span>
+            </div>
+
+            <button class="new-chat-btn" id="new-chat-btn">+ New Chat</button>
+
+            <label class="show-archived">
+                <input type="checkbox" id="show-archived-toggle"> Show archived
+            </label>
+
+            <div id="chat-list"></div>
+
+            <div class="sidebar-footer">
+                <button class="collapse-btn">‹</button>
+            </div>
+        </aside>
+
+        <!-- Triage View -->
+        <div class="triage-view" id="triage-view">
+            <div class="triage-header">
+                <button class="triage-back" onclick="showSkillsView()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back to Skills
+                </button>
+                <div class="workbench-eyebrow">SKILLS / REAL TIME USER TRIAGE</div>
+                <div class="workbench-title-row" style="margin-top:3px">
+                    <h1 style="font-size:20px;font-weight:600;color:#1e1e1e;">Real Time User Triage</h1>
+                </div>
+                <p class="triage-intro">
+                    Look up any DoorDash user by Consumer ID or email address to see every event
+                    they triggered in the app for a given day, shown newest to oldest.
+                </p>
+                <div class="triage-search-row">
+                    <input class="triage-input" id="triage-user-input" type="text" placeholder="Consumer ID or email address...">
+                    <input class="triage-date" id="triage-date-input" type="date">
+                    <button class="triage-search-btn" id="triage-search-btn" onclick="searchTriageEvents()">Search</button>
+                </div>
+                <div class="triage-mode-toggle">
+                    <button class="triage-mode-btn active" id="mode-btn-verbose" onclick="setTriageMode('verbose')">Verbose</button>
+                    <button class="triage-mode-btn" id="mode-btn-summary" onclick="setTriageMode('summary')">Summary</button>
+                </div>
+            </div>
+            <div class="triage-content" id="triage-content">
+                <div class="triage-empty">Enter a Consumer ID or email above to load their event journey.</div>
+            </div>
+        </div>
+
+        <!-- Behavior View -->
+        <div class="behavior-view" id="behavior-view">
+            <div class="behavior-header">
+                <button class="triage-back" onclick="showSkillsView()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back to Skills
+                </button>
+                <div class="workbench-eyebrow">SKILLS / REAL TIME USER BEHAVIOR</div>
+                <div class="workbench-title-row" style="margin-top:3px">
+                    <h1 style="font-size:20px;font-weight:600;color:#1e1e1e;">Funnel Builder</h1>
+                </div>
+                <p class="triage-intro">
+                    Build a step-by-step funnel to see how many unique users hit each event.
+                    Select events below — each step shows the total unique users who triggered it.
+                </p>
+                <div class="behavior-date-badge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    March 1, 2026
+                </div>
+            </div>
+            <div class="behavior-content">
+                <div class="behavior-slots" id="behavior-slots"></div>
+                <button class="behavior-add-more-btn" onclick="addBehaviorSlot()">+ Add More</button>
+                <div class="behavior-chart-card" id="behavior-chart-card" style="display:none">
+                    <div class="behavior-chart-title">Event Funnel — March 1, 2026</div>
+                    <div id="behavior-chart-container" style="position:relative;height:200px;">
+                        <canvas id="behavior-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills View -->
+        <div class="skills-view" id="skills-view">
+            <div class="skills-header">
+                <div class="workbench-eyebrow">SKILLS</div>
+                <div class="workbench-title-row">
+                    <h1 style="font-size:20px;font-weight:600;color:#1e1e1e;">Capability setup and installs</h1>
+                </div>
+            </div>
+            <div class="skills-content">
+
+                <!-- Active skills -->
+                <div class="skills-section-title">Active</div>
+                <div class="skills-grid">
+
+                    <div class="skill-card active" onclick="launchSkill('behavior')">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Real Time User Behavior</div>
+                        <div class="skill-card-desc">Monitor live user interactions and session patterns as they happen.</div>
+                    </div>
+
+                    <div class="skill-card active" onclick="launchSkill('triage')">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Real Time User Triage</div>
+                        <div class="skill-card-desc">Automatically prioritize and route user issues by severity and type.</div>
+                    </div>
+
+                </div>
+
+                <!-- Coming soon skills -->
+                <div class="skills-section-title">Coming Soon</div>
+                <div class="skills-grid">
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Anomaly Detection</div>
+                        <div class="skill-card-desc">Surface unexpected spikes or drops in key metrics automatically.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                <polyline points="17 6 23 6 23 12"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Demand Forecasting</div>
+                        <div class="skill-card-desc">Predict order volume and GOV by market, time, and segment.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="8" r="4"/>
+                                <path d="M20 21a8 8 0 1 0-16 0"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Cohort Analysis</div>
+                        <div class="skill-card-desc">Compare retention and behavior across user cohorts over time.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="6" y1="3" x2="6" y2="15"/>
+                                <circle cx="18" cy="6" r="3"/>
+                                <circle cx="6" cy="18" r="3"/>
+                                <path d="M18 9a9 9 0 0 1-9 9"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">A/B Test Evaluator</div>
+                        <div class="skill-card-desc">Assess experiment significance, guardrails, and metric lift.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Fraud Detection</div>
+                        <div class="skill-card-desc">Flag suspicious order patterns and account activity in real time.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Sentiment Analysis</div>
+                        <div class="skill-card-desc">Analyze customer feedback and support tickets for sentiment trends.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Revenue Attribution</div>
+                        <div class="skill-card-desc">Trace incremental GOV and VP back to specific features and campaigns.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Customer Segmentation</div>
+                        <div class="skill-card-desc">Auto-cluster users by behavior, value, and lifecycle stage.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                    <div class="skill-card disabled">
+                        <div class="skill-card-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                            </svg>
+                        </div>
+                        <div class="skill-card-name">Journey Mapper</div>
+                        <div class="skill-card-desc">Visualize end-to-end user paths from acquisition to conversion.</div>
+                        <span class="skill-coming-badge">Coming Soon</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <div class="workbench-header">
+                <div class="workbench-eyebrow">DATA WORKBENCH</div>
+                <div class="workbench-title-row">
+                    <h1 id="chat-title">New Chat</h1>
+                    <button class="edit-icon-btn" id="edit-title-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div class="chat-empty" id="chat-empty">
+                <div class="chat-empty-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e05a46" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="chat-empty-title">Start a conversation</div>
+                <div class="chat-empty-subtitle">Messages from all chat sessions in Data Workbench share one context for now.</div>
+            </div>
+
+            <!-- Messages -->
+            <div class="messages-container" id="messages-container" style="display:none"></div>
+
+            <div class="input-section">
+                <div class="input-box">
+                    <input type="text" id="message-input" placeholder="Type your message...">
+                    <button class="send-icon-btn" id="send-btn">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-hint">Press Enter to send. Shift+Enter for newline.</div>
+            </div>
+        </main>
+
+        <!-- Right Panel -->
+        <aside class="right-panel">
+            <div class="right-panel-title" id="right-panel-title">Tool step inspector</div>
+            <div id="inspector-content" class="right-panel-desc">
+                Send a message to see response metadata here.
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Context Menu -->
+    <div class="chat-menu" id="chat-menu" style="display:none"></div>
+
+    <script>
+        // ── State ────────────────────────────────────────────────────────────
+        let currentChatId = null;
+        let showArchived = false;
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        // ── Init ─────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChats();
+
+            document.getElementById('new-chat-btn').addEventListener('click', createChat);
+
+            document.getElementById('show-archived-toggle').addEventListener('change', e => {
+                showArchived = e.target.checked;
+                loadChats();
+            });
+
+            document.getElementById('message-input').addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+            document.getElementById('edit-title-btn').addEventListener('click', startEditTitle);
+
+            document.getElementById('triage-user-input').addEventListener('keydown', e => {
+                if (e.key === 'Enter') searchTriageEvents();
+            });
+
+            // Close context menu on outside click
+            document.addEventListener('click', e => {
+                const menu = document.getElementById('chat-menu');
+                if (!menu.contains(e.target)) menu.style.display = 'none';
+            });
+        });
+
+        // ── Chat List ────────────────────────────────────────────────────────
+        async function loadChats() {
+            try {
+                const res = await fetch(`/api/chats?archived=${showArchived}`);
+                const chats = await res.json();
+                renderChatList(chats);
+
+                // Auto-select first chat if none selected
+                if (chats.length > 0 && !currentChatId) {
+                    await selectChat(chats[0].id);
+                } else if (chats.length === 0) {
+                    currentChatId = null;
+                    showEmptyState();
+                    document.getElementById('chat-title').textContent = 'New Chat';
+                }
+            } catch (err) {
+                console.error('Failed to load chats:', err);
+            }
+        }
+
+        function renderChatList(chats) {
+            const container = document.getElementById('chat-list');
+            document.getElementById('chats-count').textContent = chats.length;
+
+            if (chats.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = chats.map(chat => `
+                <div class="chat-list-item ${chat.id === currentChatId ? 'active' : ''}"
+                     data-chat-id="${chat.id}"
+                     onclick="selectChat(${chat.id})">
+                    <span class="chat-list-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </span>
+                    <div class="chat-list-body">
+                        <div class="chat-list-name">${escapeHtml(chat.name)}</div>
+                        <div class="chat-list-date">${chat.created_at}</div>
+                    </div>
+                    <span class="chat-list-more" onclick="openChatMenu(event, ${chat.id}, ${chat.archived})">···</span>
+                </div>
+            `).join('');
+        }
+
+        // ── Create / Select Chat ─────────────────────────────────────────────
+        async function createChat() {
+            try {
+                const res = await fetch('/api/chats', { method: 'POST' });
+                const chat = await res.json();
+                currentChatId = chat.id;
+                await loadChats();
+                document.getElementById('chat-title').textContent = chat.name;
+                showEmptyState();
+                clearInspector();
+                document.getElementById('message-input').focus();
+            } catch (err) {
+                console.error('Failed to create chat:', err);
+            }
+        }
+
+        async function selectChat(chatId) {
+            currentChatId = chatId;
+
+            // Highlight active item
+            document.querySelectorAll('.chat-list-item').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.chatId) === chatId);
+                el.querySelector('.chat-list-name').style.color =
+                    parseInt(el.dataset.chatId) === chatId ? '#e05a46' : '';
+            });
+
+            try {
+                const res = await fetch(`/api/chats/${chatId}/messages`);
+                const data = await res.json();
+
+                document.getElementById('chat-title').textContent = data.chat.name;
+
+                if (data.messages.length === 0) {
+                    showEmptyState();
+                } else {
+                    const container = document.getElementById('messages-container');
+                    container.innerHTML = data.messages.map(renderMessage).join('');
+                    showMessagesContainer();
+                    scrollToBottom();
+
+                    // Show last assistant message metadata in inspector
+                    const lastAssistant = [...data.messages].reverse().find(m => m.role === 'assistant');
+                    if (lastAssistant && lastAssistant.tool_calls) {
+                        updateInspector(lastAssistant.tool_calls);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load messages:', err);
+            }
+        }
+
+        // ── Send Message ─────────────────────────────────────────────────────
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+            if (!content || !currentChatId) return;
+
+            input.value = '';
+            setInputDisabled(true);
+
+            showMessagesContainer();
+            appendMessageToDOM({ role: 'user', content, created_at: formatNow() });
+            const loadingEl = appendLoadingToDOM();
+            scrollToBottom();
+
+            try {
+                const res = await fetch(`/api/chats/${currentChatId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content }),
+                });
+
+                loadingEl.remove();
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    appendErrorToDOM(err.error || 'Something went wrong.');
+                    return;
+                }
+
+                const data = await res.json();
+                appendMessageToDOM(data.message);
+                updateInspector(data.metadata);
+                scrollToBottom();
+
+                // Update sidebar title after first message names the chat
+                if (data.metadata.chat_name) {
+                    document.getElementById('chat-title').textContent = data.metadata.chat_name;
+                    const nameEl = document.querySelector(`[data-chat-id="${currentChatId}"] .chat-list-name`);
+                    if (nameEl) nameEl.textContent = data.metadata.chat_name;
+                }
+
+            } catch (err) {
+                loadingEl.remove();
+                appendErrorToDOM('Network error. Please try again.');
+            } finally {
+                setInputDisabled(false);
+                input.focus();
+                scrollToBottom();
+            }
+        }
+
+        // ── Render Helpers ───────────────────────────────────────────────────
+        function renderMessage(msg) {
+            const content = msg.role === 'user'
+                ? escapeHtml(msg.content)
+                : marked.parse(msg.content);
+            return `
+                <div class="message ${msg.role}">
+                    <div class="message-bubble">${content}</div>
+                    <div class="message-time">${msg.created_at}</div>
+                </div>
+            `;
+        }
+
+        function appendMessageToDOM(msg) {
+            const container = document.getElementById('messages-container');
+            container.insertAdjacentHTML('beforeend', renderMessage(msg));
+        }
+
+        function appendLoadingToDOM() {
+            const container = document.getElementById('messages-container');
+            const el = document.createElement('div');
+            el.className = 'message assistant';
+            el.innerHTML = `
+                <div class="message-bubble loading-bubble">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            `;
+            container.appendChild(el);
+            return el;
+        }
+
+        function appendErrorToDOM(text) {
+            const container = document.getElementById('messages-container');
+            container.insertAdjacentHTML('beforeend', `
+                <div class="message assistant message-error">
+                    <div class="message-bubble">${escapeHtml(text)}</div>
+                </div>
+            `);
+        }
+
+        function showEmptyState() {
+            showWorkbenchView();
+            document.getElementById('chat-empty').style.display = 'flex';
+            document.getElementById('messages-container').style.display = 'none';
+        }
+
+        function showMessagesContainer() {
+            showWorkbenchView();
+            document.getElementById('chat-empty').style.display = 'none';
+            document.getElementById('messages-container').style.display = 'flex';
+            document.getElementById('messages-container').style.flexDirection = 'column';
+        }
+
+        function scrollToBottom() {
+            const c = document.getElementById('messages-container');
+            c.scrollTop = c.scrollHeight;
+        }
+
+        function setInputDisabled(disabled) {
+            document.getElementById('message-input').disabled = disabled;
+            document.getElementById('send-btn').disabled = disabled;
+        }
+
+        // ── Inspector Panel ──────────────────────────────────────────────────
+        function updateInspector(metadata) {
+            if (!metadata) return;
+            const el = document.getElementById('inspector-content');
+            el.innerHTML = `
+                <div class="inspector-row">
+                    <span>Model</span>
+                    <strong>${escapeHtml(metadata.model || '—')}</strong>
+                </div>
+                <div class="inspector-row">
+                    <span>Tokens</span>
+                    <strong>${metadata.tokens_used ?? '—'}</strong>
+                </div>
+                <hr class="inspector-divider">
+                <div class="right-panel-desc">Click a message to inspect its details.</div>
+            `;
+        }
+
+        function clearInspector() {
+            document.getElementById('inspector-content').innerHTML =
+                '<div class="right-panel-desc">Send a message to see response metadata here.</div>';
+        }
+
+        // ── Edit Title ───────────────────────────────────────────────────────
+        function startEditTitle() {
+            if (!currentChatId) return;
+            const el = document.getElementById('chat-title');
+            el.contentEditable = 'true';
+            el.focus();
+
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            el.addEventListener('keydown', onTitleKeydown);
+            el.addEventListener('blur', onTitleBlur);
+        }
+
+        function onTitleKeydown(e) {
+            if (e.key === 'Enter') { e.preventDefault(); commitTitle(); }
+            if (e.key === 'Escape') { cancelTitle(); }
+        }
+
+        function onTitleBlur() { commitTitle(); }
+
+        async function commitTitle() {
+            const el = document.getElementById('chat-title');
+            el.contentEditable = 'false';
+            el.removeEventListener('keydown', onTitleKeydown);
+            el.removeEventListener('blur', onTitleBlur);
+
+            const newName = el.textContent.trim();
+            if (!newName || !currentChatId) return;
+
+            try {
+                const res = await fetch(`/api/chats/${currentChatId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName }),
+                });
+                const data = await res.json();
+                el.textContent = data.name;
+                const nameEl = document.querySelector(`[data-chat-id="${currentChatId}"] .chat-list-name`);
+                if (nameEl) nameEl.textContent = data.name;
+            } catch (err) {
+                console.error('Failed to rename chat:', err);
+            }
+        }
+
+        function cancelTitle() {
+            const el = document.getElementById('chat-title');
+            el.contentEditable = 'false';
+            el.removeEventListener('keydown', onTitleKeydown);
+            el.removeEventListener('blur', onTitleBlur);
+        }
+
+        // ── Context Menu ─────────────────────────────────────────────────────
+        function openChatMenu(e, chatId, isArchived) {
+            e.stopPropagation();
+            const menu = document.getElementById('chat-menu');
+
+            menu.innerHTML = `
+                <div class="chat-menu-item" onclick="renameFromMenu(${chatId})">Rename</div>
+                <div class="chat-menu-item" onclick="toggleArchive(${chatId}, ${isArchived})">
+                    ${isArchived ? 'Unarchive' : 'Archive'}
+                </div>
+                <div class="chat-menu-item danger" onclick="deleteChat(${chatId})">Delete</div>
+            `;
+
+            const rect = e.target.getBoundingClientRect();
+            menu.style.top = `${rect.bottom + 4}px`;
+            menu.style.left = `${rect.left - 100}px`;
+            menu.style.display = 'block';
+        }
+
+        function renameFromMenu(chatId) {
+            document.getElementById('chat-menu').style.display = 'none';
+            if (chatId !== currentChatId) selectChat(chatId).then(startEditTitle);
+            else startEditTitle();
+        }
+
+        async function toggleArchive(chatId, currentlyArchived) {
+            document.getElementById('chat-menu').style.display = 'none';
+            try {
+                await fetch(`/api/chats/${chatId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ archived: !currentlyArchived }),
+                });
+                if (chatId === currentChatId) currentChatId = null;
+                await loadChats();
+            } catch (err) {
+                console.error('Failed to archive chat:', err);
+            }
+        }
+
+        async function deleteChat(chatId) {
+            document.getElementById('chat-menu').style.display = 'none';
+            if (!confirm('Delete this chat? This cannot be undone.')) return;
+            try {
+                await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
+                if (chatId === currentChatId) currentChatId = null;
+                await loadChats();
+            } catch (err) {
+                console.error('Failed to delete chat:', err);
+            }
+        }
+
+        // ── Skills View ──────────────────────────────────────────────────────
+        function showSkillsView() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('triage-view').style.display = 'none';
+            document.getElementById('behavior-view').style.display = 'none';
+            document.getElementById('skills-view').style.display = 'flex';
+            setActiveNavItem('skills-nav-item');
+
+            document.getElementById('right-panel-title').textContent = 'About Skills';
+            document.getElementById('inspector-content').innerHTML = `
+                <div class="right-panel-desc" style="line-height:1.6">
+                    Skills extend Dashie with specialized real-time capabilities.<br><br>
+                    Active skills can be launched directly from this panel.
+                </div>
+            `;
+        }
+
+        function showWorkbenchView() {
+            document.getElementById('skills-view').style.display = 'none';
+            document.getElementById('triage-view').style.display = 'none';
+            document.getElementById('behavior-view').style.display = 'none';
+            document.getElementById('main-content').style.display = 'flex';
+            setActiveNavItem(null);
+
+            document.getElementById('right-panel-title').textContent = 'Tool step inspector';
+        }
+
+        function setActiveNavItem(id) {
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                el.classList.toggle('active-nav', el.id === id);
+            });
+        }
+
+        function launchSkill(skillId) {
+            if (skillId === 'triage') {
+                showTriageView();
+                return;
+            }
+            if (skillId === 'behavior') {
+                showBehaviorView();
+                return;
+            }
+            // Default: open a new chat with a pre-filled prompt
+            const prompts = {};
+            showWorkbenchView();
+            fetch('/api/chats', { method: 'POST' })
+                .then(r => r.json())
+                .then(chat => {
+                    currentChatId = chat.id;
+                    return loadChats();
+                })
+                .then(() => {
+                    showEmptyState();
+                    const input = document.getElementById('message-input');
+                    input.value = prompts[skillId] || '';
+                    input.focus();
+                });
+        }
+
+        // ── Triage View ──────────────────────────────────────────────────────
+        function showTriageView() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('skills-view').style.display = 'none';
+            document.getElementById('behavior-view').style.display = 'none';
+            document.getElementById('triage-view').style.display = 'flex';
+            setActiveNavItem('skills-nav-item');
+
+            // Default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('triage-date-input').value = today;
+
+            document.getElementById('right-panel-title').textContent = 'Triage Tips';
+            document.getElementById('inspector-content').innerHTML = `
+                <div class="right-panel-desc" style="line-height:1.7">
+                    <strong style="color:#444;display:block;margin-bottom:6px">How to use</strong>
+                    Enter a numeric Consumer ID or a DoorDash email address.<br><br>
+                    Events are pulled from<br><code style="font-size:10px;background:#f0f0f0;padding:1px 4px;border-radius:3px">UNIFIED_CONSUMER_EVENTS</code><br>and shown newest first.<br><br>
+                    Change the date to look up any past day.
+                </div>
+            `;
+
+            document.getElementById('triage-user-input').focus();
+        }
+
+        async function searchTriageEvents() {
+            const userInput = document.getElementById('triage-user-input').value.trim();
+            const date = document.getElementById('triage-date-input').value;
+            const content = document.getElementById('triage-content');
+            const btn = document.getElementById('triage-search-btn');
+
+            if (!userInput) {
+                document.getElementById('triage-user-input').focus();
+                return;
+            }
+
+            btn.disabled = true;
+            content.innerHTML = `
+                <div class="triage-loading">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    &nbsp; Querying Snowflake…
+                </div>`;
+
+            try {
+                const params = new URLSearchParams({ user_id: userInput, date });
+                const res = await fetch(`/api/triage/events?${params}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    content.innerHTML = `<div class="triage-error">⚠ ${escapeHtml(data.error || 'Unknown error')}</div>`;
+                    return;
+                }
+
+                _triageApiData = data;
+                renderTriageResults(data);
+            } catch (err) {
+                content.innerHTML = `<div class="triage-error">⚠ Network error — is the server running?</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        let _triageEvents = [];
+        let _triageMode = 'verbose';
+        let _triageApiData = null;
+        const TRIAGE_PAGE = 20;
+
+        function formatEventTime(timestamp) {
+            if (!timestamp) return '—';
+            // timestamp format: "2026-03-04 21:22:35"
+            const [datePart, timePart] = timestamp.split(' ');
+            if (!timePart) return timestamp;
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [h, m] = timePart.split(':').map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hour = h % 12 || 12;
+            const monthName = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month - 1];
+            return `${monthName} ${day}, ${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
+
+        function getActorTag(eventName) {
+            const n = (eventName || '').toLowerCase();
+            if (n.startsWith('consumer_') || n.startsWith('cx_')) {
+                return '<span class="actor-tag cx">[Cx]</span>';
+            } else if (n.startsWith('dasher_') || n.startsWith('dx_') || n.startsWith('driver_')) {
+                return '<span class="actor-tag dx">[Dx]</span>';
+            } else {
+                return '<span class="actor-tag sys">[Sys]</span>';
+            }
+        }
+
+        function renderEventRows(events, startIndex) {
+            const offset = startIndex || 0;
+            return events.map((e, i) => `
+                <div class="event-row">
+                    <span class="event-num">${offset + i + 1}</span>
+                    ${getActorTag(e.event_name)}
+                    <span class="event-time">${escapeHtml(formatEventTime(e.timestamp))}</span>
+                    <span class="event-desc">${escapeHtml(e.description || '—')}</span>
+                    <span class="event-name">${escapeHtml(e.event_name || '—')}</span>
+                    <span class="event-label">${escapeHtml(e.store_name || e.event_label || '—')}</span>
+                    <span class="event-label">${escapeHtml(e.item_name || '—')}</span>
+                </div>`).join('');
+        }
+
+        function showMoreEvents() {
+            const list = document.getElementById('triage-event-list');
+            const btn = document.getElementById('triage-more-btn');
+            const shown = list.querySelectorAll('.event-row').length;
+            const next = _triageEvents.slice(shown, shown + TRIAGE_PAGE);
+            list.insertAdjacentHTML('beforeend', renderEventRows(next, shown));
+            const newShown = shown + next.length;
+            if (newShown >= _triageEvents.length) {
+                btn.style.display = 'none';
+            } else {
+                btn.textContent = `Show more (${_triageEvents.length - newShown} remaining)`;
+            }
+        }
+
+        function setTriageMode(mode) {
+            _triageMode = mode;
+            document.getElementById('mode-btn-verbose').classList.toggle('active', mode === 'verbose');
+            document.getElementById('mode-btn-summary').classList.toggle('active', mode === 'summary');
+            if (!_triageApiData) return;
+            if (mode === 'verbose') {
+                renderTriageResults(_triageApiData);
+            } else {
+                generateSummary(_triageApiData);
+            }
+        }
+
+        async function generateSummary(data) {
+            const content = document.getElementById('triage-content');
+            content.innerHTML = `
+                <div class="triage-loading">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    &nbsp; Generating AI summary…
+                </div>`;
+            try {
+                const res = await fetch('/api/triage/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        events: data.events,
+                        user: data.user,
+                        email: data.email,
+                        date: data.date,
+                    }),
+                });
+                const result = await res.json();
+                if (!res.ok) {
+                    content.innerHTML = `<div class="triage-error">⚠ ${escapeHtml(result.error || 'Summary failed')}</div>`;
+                    return;
+                }
+                content.innerHTML = `<div class="triage-summary-prose">${marked.parse(result.summary)}</div>`;
+            } catch (err) {
+                content.innerHTML = `<div class="triage-error">⚠ Network error — could not generate summary.</div>`;
+            }
+        }
+
+        function renderTriageResults(data) {
+            if (_triageMode === 'summary') {
+                generateSummary(data);
+                return;
+            }
+            const content = document.getElementById('triage-content');
+            const dateLabel = new Date(data.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            // Build user label — show "email → user_id" when resolved from email
+            const userLabel = data.email
+                ? `${escapeHtml(data.email)} → User ID <strong style="color:#555">${escapeHtml(data.user)}</strong>`
+                : `User ID <strong style="color:#555">${escapeHtml(data.user)}</strong>`;
+
+            if (data.count === 0) {
+                content.innerHTML = `
+                    <div class="triage-result-header">
+                        <span>0 events</span> for ${userLabel} on ${dateLabel}
+                    </div>
+                    <div class="triage-empty">No events found for this user on this date.</div>`;
+                return;
+            }
+
+            _triageEvents = data.events;
+            const initialRows = renderEventRows(_triageEvents.slice(0, TRIAGE_PAGE));
+            const remaining = _triageEvents.length - TRIAGE_PAGE;
+
+            content.innerHTML = `
+                <div class="triage-result-header">
+                    <span>${data.count}${data.count === 500 ? '+' : ''} events</span> for ${userLabel} on ${dateLabel}
+                </div>
+                <div class="event-list" id="triage-event-list">${initialRows}</div>
+                ${remaining > 0 ? `<button id="triage-more-btn" class="triage-more-btn" onclick="showMoreEvents()">Show more (${remaining} remaining)</button>` : ''}`;
+        }
+
+        // ── Behavior View ────────────────────────────────────────────────────
+        const BEHAVIOR_DATE = '2026-03-01';
+        let behaviorSlots = [];
+        let behaviorNextId = 1;
+        let behaviorChart = null;
+        let behaviorEventLabels = null;
+
+        async function showBehaviorView() {
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('skills-view').style.display = 'none';
+            document.getElementById('triage-view').style.display = 'none';
+            document.getElementById('behavior-view').style.display = 'flex';
+            setActiveNavItem('skills-nav-item');
+
+            document.getElementById('right-panel-title').textContent = 'Funnel Tips';
+            document.getElementById('inspector-content').innerHTML = `
+                <div class="right-panel-desc" style="line-height:1.7">
+                    <strong style="color:#444;display:block;margin-bottom:6px">How to use</strong>
+                    Click a step to pick an event label.<br><br>
+                    Each bar shows unique users who triggered that event on March 1, 2026.<br><br>
+                    Use <em>Add More</em> to extend the funnel.
+                </div>`;
+
+            if (behaviorSlots.length === 0) {
+                behaviorSlots = [
+                    { id: 1, label: null, count: null },
+                    { id: 2, label: null, count: null },
+                ];
+                behaviorNextId = 3;
+            }
+            renderBehaviorSlots();
+
+            if (!behaviorEventLabels) {
+                await fetchBehaviorEventLabels();
+            }
+        }
+
+        async function fetchBehaviorEventLabels() {
+            try {
+                const res = await fetch(`/api/behavior/event-labels?date=${BEHAVIOR_DATE}`);
+                const data = await res.json();
+                behaviorEventLabels = data.labels || [];
+            } catch (e) {
+                behaviorEventLabels = [];
+            }
+        }
+
+        function renderBehaviorSlots() {
+            const container = document.getElementById('behavior-slots');
+            const parts = [];
+            behaviorSlots.forEach((slot, i) => {
+                if (i > 0) parts.push(`<div class="behavior-slot-arrow">›</div>`);
+                if (slot.label) {
+                    // Calculate % vs previous filled slot
+                    let pctHtml = '';
+                    if (i > 0 && slot.count !== null) {
+                        const prev = [...behaviorSlots].slice(0, i).reverse().find(s => s.label && s.count !== null);
+                        if (prev && prev.count > 0) {
+                            const pct = ((slot.count / prev.count) * 100).toFixed(1);
+                            pctHtml = `<div class="behavior-slot-pct">${pct}% of prev</div>`;
+                        }
+                    }
+                    const countHtml = slot.count === null
+                        ? `<div class="behavior-slot-spinner">Loading…</div>`
+                        : `<div class="behavior-slot-count">${slot.count.toLocaleString()}</div>
+                           <div class="behavior-slot-count-sub">unique users</div>
+                           ${pctHtml}`;
+                    parts.push(`
+                        <div class="behavior-slot filled" data-slot-id="${slot.id}">
+                            <div class="behavior-slot-step">Step ${i + 1}</div>
+                            <div class="behavior-slot-label">${escapeHtml(slot.label)}</div>
+                            ${countHtml}
+                        </div>`);
+                } else {
+                    parts.push(`
+                        <div class="behavior-slot empty" data-slot-id="${slot.id}" onclick="openBehaviorDropdown(${slot.id}, this)">
+                            <div class="behavior-slot-step">Step ${i + 1}</div>
+                            <div class="behavior-slot-add">+ Add Event ${i + 1}</div>
+                        </div>`);
+                }
+            });
+            container.innerHTML = parts.join('');
+        }
+
+        function openBehaviorDropdown(slotId, el) {
+            document.getElementById('behavior-dropdown')?.remove();
+            const dropdown = document.createElement('div');
+            dropdown.id = 'behavior-dropdown';
+            dropdown.className = 'behavior-dropdown';
+
+            const selectedLabels = new Set(behaviorSlots.filter(s => s.label).map(s => s.label));
+
+            if (!behaviorEventLabels || behaviorEventLabels.length === 0) {
+                dropdown.innerHTML = `<div class="behavior-dropdown-item already-selected">No events loaded</div>`;
+            } else {
+                dropdown.innerHTML = behaviorEventLabels.map(label => {
+                    const sel = selectedLabels.has(label);
+                    return `<div class="behavior-dropdown-item ${sel ? 'already-selected' : ''}"
+                        data-label="${escapeHtml(label)}" data-slot="${slotId}">
+                        ${escapeHtml(label)}
+                    </div>`;
+                }).join('');
+            }
+
+            const rect = el.getBoundingClientRect();
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${rect.left}px`;
+            document.body.appendChild(dropdown);
+
+            dropdown.addEventListener('click', e => {
+                const item = e.target.closest('.behavior-dropdown-item');
+                if (!item || item.classList.contains('already-selected')) return;
+                selectBehaviorEvent(parseInt(item.dataset.slot), item.dataset.label);
+                dropdown.remove();
+            });
+
+            setTimeout(() => {
+                document.addEventListener('click', function closeDrop(e) {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDrop);
+                    }
+                });
+            }, 0);
+        }
+
+        async function selectBehaviorEvent(slotId, label) {
+            const slot = behaviorSlots.find(s => s.id === slotId);
+            if (!slot) return;
+            slot.label = label;
+            slot.count = null;
+            renderBehaviorSlots();
+
+            try {
+                const res = await fetch(`/api/behavior/event-count?event_label=${encodeURIComponent(label)}&date=${BEHAVIOR_DATE}`);
+                const data = await res.json();
+                slot.count = data.user_count ?? 0;
+            } catch (e) {
+                slot.count = 0;
+            }
+            renderBehaviorSlots();
+            updateBehaviorChart();
+        }
+
+        function addBehaviorSlot() {
+            behaviorSlots.push({ id: behaviorNextId++, label: null, count: null });
+            renderBehaviorSlots();
+        }
+
+        const funnelPlugin = {
+            id: 'funnelPlugin',
+            afterDatasetsDraw(chart) {
+                const ctx = chart.ctx;
+                const meta = chart.getDatasetMeta(0);
+                const data = chart.data.datasets[0].data;
+
+                meta.data.forEach((bar, i) => {
+                    const value = data[i];
+
+                    // ── Count label above bar ──────────────────────────────
+                    ctx.save();
+                    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.fillStyle = '#333';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(Number(value).toLocaleString(), bar.x, bar.y - 5);
+                    ctx.restore();
+
+                    // ── Connecting line + % drop to next bar ──────────────
+                    if (i < meta.data.length - 1) {
+                        const next = meta.data[i + 1];
+                        const nextValue = data[i + 1];
+
+                        // from top-right of this bar to top-left of next bar
+                        const x1 = bar.x + bar.width / 2;
+                        const y1 = bar.y;
+                        const x2 = next.x - next.width / 2;
+                        const y2 = next.y;
+
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(224, 90, 70, 0.45)';
+                        ctx.lineWidth = 1.5;
+                        ctx.setLineDash([5, 4]);
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        // % drop badge at midpoint of line
+                        const pct = value > 0 ? (((value - nextValue) / value) * 100).toFixed(1) : '—';
+                        const label = `↓ ${pct}%`;
+                        const midX = (x1 + x2) / 2;
+                        const midY = (y1 + y2) / 2;
+
+                        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+                        const tw = ctx.measureText(label).width;
+                        const px = 5, py = 3;
+                        const bx = midX - tw / 2 - px;
+                        const by = midY - 7 - py;
+                        const bw = tw + px * 2;
+                        const bh = 14 + py * 2;
+                        const r = 3;
+
+                        // rounded rect background
+                        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                        ctx.beginPath();
+                        ctx.moveTo(bx + r, by);
+                        ctx.lineTo(bx + bw - r, by);
+                        ctx.arcTo(bx + bw, by, bx + bw, by + r, r);
+                        ctx.lineTo(bx + bw, by + bh - r);
+                        ctx.arcTo(bx + bw, by + bh, bx + bw - r, by + bh, r);
+                        ctx.lineTo(bx + r, by + bh);
+                        ctx.arcTo(bx, by + bh, bx, by + bh - r, r);
+                        ctx.lineTo(bx, by + r);
+                        ctx.arcTo(bx, by, bx + r, by, r);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = '#e05a46';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, midX, midY - 1);
+                        ctx.restore();
+                    }
+                });
+            }
+        };
+
+        function updateBehaviorChart() {
+            const filled = behaviorSlots.filter(s => s.label && s.count !== null);
+            const chartCard = document.getElementById('behavior-chart-card');
+            if (filled.length === 0) { chartCard.style.display = 'none'; return; }
+
+            chartCard.style.display = 'block';
+            document.getElementById('behavior-chart-container').style.height = '300px';
+
+            const labels = filled.map(s => s.label);
+            const counts = filled.map(s => s.count);
+            const colors = filled.map((_, i) => `rgba(224, 90, 70, ${1 - (i / Math.max(filled.length, 1)) * 0.3})`);
+
+            if (behaviorChart) {
+                behaviorChart.data.labels = labels;
+                behaviorChart.data.datasets[0].data = counts;
+                behaviorChart.data.datasets[0].backgroundColor = colors;
+                behaviorChart.update();
+            } else {
+                const ctx = document.getElementById('behavior-chart').getContext('2d');
+                behaviorChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: colors,
+                            borderRadius: 5,
+                            barThickness: 44,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: { top: 28 } },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: c => ` ${c.parsed.y.toLocaleString()} unique users`,
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0, font: { size: 11 } },
+                                grid: { color: '#f5f5f5' },
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 11 },
+                                    maxRotation: 25,
+                                    callback(val) {
+                                        const lbl = this.getLabelForValue(val);
+                                        return lbl.length > 20 ? lbl.slice(0, 17) + '…' : lbl;
+                                    }
+                                },
+                                grid: { display: false },
+                            }
+                        }
+                    },
+                    plugins: [funnelPlugin]
+                });
+            }
+        }
+
+        // ── Utilities ────────────────────────────────────────────────────────
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        function formatNow() {
+            return new Date().toLocaleString('en-US', {
+                month: 'short', day: '2-digit',
+                hour: '2-digit', minute: '2-digit',
+            });
+        }
+    </script>
+
+</body>
+</html>
