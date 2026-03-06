@@ -1442,13 +1442,15 @@
                 </p>
                 <div class="triage-search-row">
                     <input class="triage-input" id="triage-user-input" type="text" placeholder="Consumer ID or email address...">
-                    <input class="triage-date" id="triage-date-input" type="date">
-                    <button class="triage-recent-btn" id="triage-recent-btn" onclick="toggleRecentOrder()">Most Recent Order</button>
+                    <input class="triage-date" id="triage-date-input" type="date" oninput="onDateInput()">
                     <button class="triage-search-btn" id="triage-search-btn" onclick="searchTriageEvents()">Search</button>
                 </div>
+                <div class="triage-search-row" style="margin-top:8px">
+                    <button class="triage-recent-btn" id="triage-recent-btn" onclick="toggleRecentOrder()">Most Recent Order</button>
+                </div>
                 <div class="triage-mode-toggle">
-                    <button class="triage-mode-btn" id="mode-btn-verbose" onclick="setTriageMode('verbose')">Verbose</button>
                     <button class="triage-mode-btn active" id="mode-btn-summary" onclick="setTriageMode('summary')">Summary</button>
+                    <button class="triage-mode-btn" id="mode-btn-verbose" onclick="setTriageMode('verbose')">Verbose</button>
                 </div>
             </div>
             <div class="triage-content" id="triage-content">
@@ -2176,7 +2178,18 @@
         function toggleRecentOrder() {
             _triageRecentMode = !_triageRecentMode;
             document.getElementById('triage-recent-btn').classList.toggle('active', _triageRecentMode);
-            document.getElementById('triage-date-input').disabled = _triageRecentMode;
+            const dateInput = document.getElementById('triage-date-input');
+            dateInput.disabled = _triageRecentMode;
+            dateInput.style.opacity = _triageRecentMode ? '0.4' : '';
+        }
+
+        function onDateInput() {
+            if (_triageRecentMode) {
+                _triageRecentMode = false;
+                document.getElementById('triage-recent-btn').classList.remove('active');
+                document.getElementById('triage-date-input').disabled = false;
+                document.getElementById('triage-date-input').style.opacity = '';
+            }
         }
 
         async function searchTriageEvents() {
