@@ -922,6 +922,7 @@ def api_triage_schema():
 def api_triage_events():
     user_input = request.args.get('user_id', '').strip()
     date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    mode = request.args.get('mode', '')
 
     if not user_input:
         return jsonify({'error': 'user_id is required'}), 400
@@ -970,26 +971,75 @@ def api_triage_events():
                 return jsonify({'error': f'No user found for email: {user_input}'}), 404
             resolved_user_id = str(row.get('USER_ID') or row.get('user_id', ''))
 
-        # Step 2: fetch events by user_id
-        cursor.execute("""
-            SELECT
-                TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
-                event_name,
-                event_label,
-                COALESCE(
-                    event_properties:store_name::STRING,
-                    event_properties:business_name::STRING
-                ) AS store_name,
-                COALESCE(
-                    event_properties:item_name::STRING,
-                    event_properties:menu_item_name::STRING
-                ) AS item_name
-            FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
-            WHERE user_id = %s
-              AND event_date = %s
-            ORDER BY event_timestamp DESC
-            LIMIT 500
-        """, (resolved_user_id, date))
+        order_timestamp = None
+
+        if mode == 'recent_order':
+            # Find the most recent order event in the last 90 days
+            cursor.execute("""
+                SELECT event_date,
+                       TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS order_timestamp
+                FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
+                WHERE user_id = %s
+                  AND event_date >= DATEADD(day, -90, CURRENT_DATE)
+                  AND (
+                      LOWER(event_name) LIKE '%order_placed%'
+                   OR LOWER(event_name) LIKE '%order_submitted%'
+                   OR LOWER(event_name) LIKE '%order_confirmed%'
+                   OR LOWER(event_name) LIKE '%checkout_completed%'
+                   OR LOWER(event_name) LIKE '%checkout_submitted%'
+                  )
+                ORDER BY event_timestamp DESC
+                LIMIT 1
+            """, (resolved_user_id,))
+            order_row = cursor.fetchone()
+            if not order_row:
+                return jsonify({'error': 'No recent orders found for this user'}), 404
+            date = str(order_row.get('EVENT_DATE') or order_row.get('event_date', ''))
+            order_timestamp = order_row.get('ORDER_TIMESTAMP') or order_row.get('order_timestamp', '')
+
+        # Fetch events for the resolved date
+        if order_timestamp:
+            # recent_order mode: only events up to and including the order
+            cursor.execute("""
+                SELECT
+                    TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
+                    event_name,
+                    event_label,
+                    COALESCE(
+                        event_properties:store_name::STRING,
+                        event_properties:business_name::STRING
+                    ) AS store_name,
+                    COALESCE(
+                        event_properties:item_name::STRING,
+                        event_properties:menu_item_name::STRING
+                    ) AS item_name
+                FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
+                WHERE user_id = %s
+                  AND event_date = %s
+                  AND event_timestamp <= %s
+                ORDER BY event_timestamp DESC
+                LIMIT 500
+            """, (resolved_user_id, date, order_timestamp))
+        else:
+            cursor.execute("""
+                SELECT
+                    TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
+                    event_name,
+                    event_label,
+                    COALESCE(
+                        event_properties:store_name::STRING,
+                        event_properties:business_name::STRING
+                    ) AS store_name,
+                    COALESCE(
+                        event_properties:item_name::STRING,
+                        event_properties:menu_item_name::STRING
+                    ) AS item_name
+                FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
+                WHERE user_id = %s
+                  AND event_date = %s
+                ORDER BY event_timestamp DESC
+                LIMIT 500
+            """, (resolved_user_id, date))
         rows = cursor.fetchall()
 
         events = []
@@ -1013,6 +1063,8 @@ def api_triage_events():
             'user': resolved_user_id,
             'email': user_input if is_email else None,
             'date': date,
+            'mode': mode or None,
+            'order_timestamp': order_timestamp,
         })
 
     except Exception as e:

@@ -695,6 +695,23 @@
         .triage-search-btn:hover { background: #cc4a38; }
         .triage-search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        .triage-recent-btn {
+            background: white;
+            border: 1px solid #e0dcd6;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .triage-recent-btn:hover { border-color: #e05a46; color: #e05a46; }
+        .triage-recent-btn.active { background: #e05a46; border-color: #e05a46; color: white; }
+        .triage-date:disabled { opacity: 0.4; cursor: not-allowed; }
+
         .triage-content {
             flex: 1;
             overflow-y: auto;
@@ -1426,6 +1443,7 @@
                 <div class="triage-search-row">
                     <input class="triage-input" id="triage-user-input" type="text" placeholder="Consumer ID or email address...">
                     <input class="triage-date" id="triage-date-input" type="date">
+                    <button class="triage-recent-btn" id="triage-recent-btn" onclick="toggleRecentOrder()">Most Recent Order</button>
                     <button class="triage-search-btn" id="triage-search-btn" onclick="searchTriageEvents()">Search</button>
                 </div>
                 <div class="triage-mode-toggle">
@@ -2155,6 +2173,12 @@
             document.getElementById('triage-user-input').focus();
         }
 
+        function toggleRecentOrder() {
+            _triageRecentMode = !_triageRecentMode;
+            document.getElementById('triage-recent-btn').classList.toggle('active', _triageRecentMode);
+            document.getElementById('triage-date-input').disabled = _triageRecentMode;
+        }
+
         async function searchTriageEvents() {
             const userInput = document.getElementById('triage-user-input').value.trim();
             const date = document.getElementById('triage-date-input').value;
@@ -2167,14 +2191,20 @@
             }
 
             btn.disabled = true;
+            const loadingMsg = _triageRecentMode ? 'Finding most recent order…' : 'Querying Snowflake…';
             content.innerHTML = `
                 <div class="triage-loading">
                     <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-                    &nbsp; Querying Snowflake…
+                    &nbsp; ${loadingMsg}
                 </div>`;
 
             try {
-                const params = new URLSearchParams({ user_id: userInput, date });
+                const params = new URLSearchParams({ user_id: userInput });
+                if (_triageRecentMode) {
+                    params.set('mode', 'recent_order');
+                } else {
+                    params.set('date', date);
+                }
                 const res = await fetch(`/api/triage/events?${params}`);
                 const data = await res.json();
 
@@ -2195,6 +2225,7 @@
         let _triageEvents = [];
         let _triageMode = 'summary';
         let _triageApiData = null;
+        let _triageRecentMode = false;
         const TRIAGE_PAGE = 20;
 
         function formatEventTime(timestamp) {
@@ -2303,11 +2334,13 @@
                 ? `${escapeHtml(data.email)} → User ID <strong style="color:#555">${escapeHtml(data.user)}</strong>`
                 : `User ID <strong style="color:#555">${escapeHtml(data.user)}</strong>`;
 
+            const countLabel = data.mode === 'recent_order'
+                ? `Session leading up to order on ${dateLabel}`
+                : `<span>${data.count}${data.count === 500 ? '+' : ''} events</span> for ${userLabel} on ${dateLabel}`;
+
             if (data.count === 0) {
                 content.innerHTML = `
-                    <div class="triage-result-header">
-                        <span>0 events</span> for ${userLabel} on ${dateLabel}
-                    </div>
+                    <div class="triage-result-header">${countLabel}</div>
                     <div class="triage-empty">No events found for this user on this date.</div>`;
                 return;
             }
@@ -2318,7 +2351,7 @@
 
             content.innerHTML = `
                 <div class="triage-result-header">
-                    <span>${data.count}${data.count === 500 ? '+' : ''} events</span> for ${userLabel} on ${dateLabel}
+                    ${countLabel}
                 </div>
                 <div class="event-list" id="triage-event-list">${initialRows}</div>
                 ${remaining > 0 ? `<button id="triage-more-btn" class="triage-more-btn" onclick="showMoreEvents()">Show more (${remaining} remaining)</button>` : ''}`;
