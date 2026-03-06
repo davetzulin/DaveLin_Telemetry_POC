@@ -937,13 +937,14 @@ def api_triage_events():
         resolved_user_id = user_input
 
         if is_email:
-            # Step 1: resolve email → user_id
-            # Try multiple common email field paths; first check the requested
-            # date, then fall back to the last 30 days if nothing is found.
-            email_sql = """
+            # Resolve email → user_id scoped to the requested date only.
+            # Multi-day VARIANT scans are too slow to be reliable; if the
+            # email isn't found on this date the user should try a different date
+            # or use Most Recent Order mode.
+            cursor.execute("""
                 SELECT user_id
                 FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
-                WHERE {date_filter}
+                WHERE event_date = %s
                   AND COALESCE(
                         event_properties:email::STRING,
                         event_properties:consumer_email::STRING,
@@ -952,24 +953,11 @@ def api_triage_events():
                       ) = %s
                   AND user_id IS NOT NULL
                 LIMIT 1
-            """
-            # First try: exact date (fast, partition-pruned)
-            cursor.execute(
-                email_sql.format(date_filter='event_date = %s'),
-                (date, user_input)
-            )
+            """, (date, user_input))
             row = cursor.fetchone()
 
-            # Second try: last 30 days (catches users with no events on that date)
             if not row:
-                cursor.execute(
-                    email_sql.format(date_filter='event_date >= DATEADD(day, -30, %s::DATE)'),
-                    (date, user_input)
-                )
-                row = cursor.fetchone()
-
-            if not row:
-                return jsonify({'error': f'{user_input} has never placed a DoorDash order'}), 404
+                return jsonify({'error': f'No events found for {user_input} on {date}. Try a different date or use Most Recent Order.'}), 404
             resolved_user_id = str(row.get('USER_ID') or row.get('user_id', ''))
 
         order_timestamp = None
@@ -1070,12 +1058,7 @@ def api_triage_events():
 
     except Exception as e:
         logger.error(f'Snowflake triage error: {e}')
-        err_str = str(e).lower()
-        if 'timeout' in err_str or 'execution time exceeded' in err_str:
-            msg = f'{user_input} has never placed a DoorDash order' if is_email else 'Query timed out — try a more specific search'
-        else:
-            msg = str(e)
-        return jsonify({'error': msg}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/triage/summarize', methods=['POST'])
