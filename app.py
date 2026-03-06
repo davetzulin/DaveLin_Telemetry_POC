@@ -969,7 +969,7 @@ def api_triage_events():
                 row = cursor.fetchone()
 
             if not row:
-                return jsonify({'error': f'No user found for email: {user_input}'}), 404
+                return jsonify({'error': f'{user_input} has never placed a DoorDash order'}), 404
             resolved_user_id = str(row.get('USER_ID') or row.get('user_id', ''))
 
         order_timestamp = None
@@ -1070,7 +1070,12 @@ def api_triage_events():
 
     except Exception as e:
         logger.error(f'Snowflake triage error: {e}')
-        return jsonify({'error': str(e)}), 500
+        err_str = str(e).lower()
+        if 'timeout' in err_str or 'execution time exceeded' in err_str:
+            msg = f'{user_input} has never placed a DoorDash order' if is_email else 'Query timed out — try a more specific search'
+        else:
+            msg = str(e)
+        return jsonify({'error': msg}), 500
 
 
 @app.route('/api/triage/summarize', methods=['POST'])
