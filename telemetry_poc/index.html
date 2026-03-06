@@ -1442,11 +1442,11 @@
                 </p>
                 <div class="triage-search-row">
                     <input class="triage-input" id="triage-user-input" type="text" placeholder="Consumer ID or email address...">
-                    <div style="display:flex;flex-direction:column;gap:6px;align-self:flex-start">
-                        <button class="triage-recent-btn" id="triage-recent-btn" onclick="toggleRecentOrder()">Most Recent Order</button>
-                        <input class="triage-date" id="triage-date-input" type="date" oninput="onDateInput()">
-                    </div>
+                    <button class="triage-recent-btn" id="triage-recent-btn" onclick="toggleRecentOrder()">Most Recent Order</button>
                     <button class="triage-search-btn" id="triage-search-btn" onclick="searchTriageEvents()">Search</button>
+                </div>
+                <div class="triage-search-row" style="margin-top:6px">
+                    <input class="triage-date" id="triage-date-input" type="date" oninput="onDateInput()">
                 </div>
                 <div class="triage-mode-toggle">
                     <button class="triage-mode-btn active" id="mode-btn-summary" onclick="setTriageMode('summary')">Summary</button>
