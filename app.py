@@ -935,16 +935,37 @@ def api_triage_events():
         resolved_user_id = user_input
 
         if is_email:
-            # Step 1: resolve email → user_id, scoped to the requested date
-            cursor.execute("""
+            # Step 1: resolve email → user_id
+            # Try multiple common email field paths; first check the requested
+            # date, then fall back to the last 30 days if nothing is found.
+            email_sql = """
                 SELECT user_id
                 FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
-                WHERE event_date = %s
-                  AND event_properties:email::STRING = %s
+                WHERE {date_filter}
+                  AND COALESCE(
+                        event_properties:email::STRING,
+                        event_properties:consumer_email::STRING,
+                        event_properties:user_email::STRING,
+                        event_properties:email_address::STRING
+                      ) = %s
                   AND user_id IS NOT NULL
                 LIMIT 1
-            """, (date, user_input,))
+            """
+            # First try: exact date (fast, partition-pruned)
+            cursor.execute(
+                email_sql.format(date_filter='event_date = %s'),
+                (date, user_input)
+            )
             row = cursor.fetchone()
+
+            # Second try: last 30 days (catches users with no events on that date)
+            if not row:
+                cursor.execute(
+                    email_sql.format(date_filter='event_date >= DATEADD(day, -30, %s::DATE)'),
+                    (date, user_input)
+                )
+                row = cursor.fetchone()
+
             if not row:
                 return jsonify({'error': f'No user found for email: {user_input}'}), 404
             resolved_user_id = str(row.get('USER_ID') or row.get('user_id', ''))
