@@ -984,49 +984,26 @@ def api_triage_events():
             date = str(order_row.get('EVENT_DATE') or order_row.get('event_date', ''))
             order_timestamp = order_row.get('ORDER_TIMESTAMP') or order_row.get('order_timestamp', '')
 
-        # Fetch events for the resolved date
-        if order_timestamp:
-            # recent_order mode: only events up to and including the order
-            cursor.execute("""
-                SELECT
-                    TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
-                    event_name,
-                    event_label,
-                    COALESCE(
-                        event_properties:store_name::STRING,
-                        event_properties:business_name::STRING
-                    ) AS store_name,
-                    COALESCE(
-                        event_properties:item_name::STRING,
-                        event_properties:menu_item_name::STRING
-                    ) AS item_name
-                FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
-                WHERE user_id = %s
-                  AND event_date = %s
-                  AND event_timestamp <= %s
-                ORDER BY event_timestamp DESC
-                LIMIT 500
-            """, (resolved_user_id, date, order_timestamp))
-        else:
-            cursor.execute("""
-                SELECT
-                    TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
-                    event_name,
-                    event_label,
-                    COALESCE(
-                        event_properties:store_name::STRING,
-                        event_properties:business_name::STRING
-                    ) AS store_name,
-                    COALESCE(
-                        event_properties:item_name::STRING,
-                        event_properties:menu_item_name::STRING
-                    ) AS item_name
-                FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
-                WHERE user_id = %s
-                  AND event_date = %s
-                ORDER BY event_timestamp DESC
-                LIMIT 500
-            """, (resolved_user_id, date))
+        # Fetch all events for the resolved date (full day, no timestamp cutoff)
+        cursor.execute("""
+            SELECT
+                TO_VARCHAR(event_timestamp, 'YYYY-MM-DD HH24:MI:SS') AS event_timestamp,
+                event_name,
+                event_label,
+                COALESCE(
+                    event_properties:store_name::STRING,
+                    event_properties:business_name::STRING
+                ) AS store_name,
+                COALESCE(
+                    event_properties:item_name::STRING,
+                    event_properties:menu_item_name::STRING
+                ) AS item_name
+            FROM EDW.CONSUMER.UNIFIED_CONSUMER_EVENTS
+            WHERE user_id = %s
+              AND event_date = %s
+            ORDER BY event_timestamp DESC
+            LIMIT 500
+        """, (resolved_user_id, date))
         rows = cursor.fetchall()
 
         events = []
